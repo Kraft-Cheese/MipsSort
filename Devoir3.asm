@@ -87,9 +87,78 @@ getRightChildIndex:
 #return i*2 + 2
 	sll $s0, $a0, 1
 	addi $s0, $s0, 2
-
 #restore stack
 	lw $ra, ($sp)
 	lw $s0, 4($sp)
 	addi $sp, $sp, 8
+jr $ra
+
+sort:
+#save stack
+	addi $sp, $sp, -16
+	sw $ra, ($sp)
+	sw $s0, 4($sp) #i
+	sw $s1, 8($sp) #N
+	sw $s2, 12($sp) #array
+
+#set values
+	#int n = sizeof - 1
+while:
+	#while i >= 0
+		#i = (n-1)/2
+	#fixheap(i, n)
+	fixHeap
+		#i--
+	#end while loop
+endwhile:
+
+while2:
+	#while (n > 0)
+		#swap(0, n)
+		jal swap
+		#n--
+		#fixheap(0,n)
+		jal fixHeap
+	#end while loop
+endwhile2:
+#restore stack
+	lw $ra, ($sp)
+	lw $s0, 4($sp) #i
+	lw $s1, 8($sp) #N
+	lw $s2, 12($sp) #array
+	addi $sp, $sp, 16
+jr $ra
+
+fixHeap:
+#save stack
+	addi $sp, $sp, -12
+	sw $ra, ($sp)
+	sw $s0, 4($sp) #lastIndex
+	sw $s1, 8($sp) #rootIndex
+
+#remove root; rootValue = array[rootindex]
+#int index = rootIndex
+# while more = true
+	#childindex = getLeftChildIndex
+	jal getLeftChildIndex
+	#if childindex <= lastindex
+		#rightchild = getRightChildIndex
+		jal getRightChildIndex
+		#if rightchild <= lastindex and array[rightchild] > array[childindex]
+			#childindex = rightchild
+		#if array[childindex > rootValue
+			#array[index] = array[childindex]
+			#index = childindex
+		#else
+			#false
+		#endif
+	#else
+		#false
+	#endif
+#array[index] = rootValue
+#restore stack
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	addi $sp, $sp, 12
 jr $ra
