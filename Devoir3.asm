@@ -80,15 +80,11 @@ getRightChildIndex:
 jr $ra
 
 sort:
-#save stack
-	addi $sp, $sp, -16
-	sw $ra, ($sp)
-	sw $s0, 4($sp) #i
-	sw $s1, 8($sp) #N
-	sw $s2, 12($sp) #array
 	
 #set values
 	#int n = sizeof - 1
+	move $t6, $s1 #n = sizeof
+	sub $t6, $t6, 1 # n = n-1
 while:
 	#while i >= 0
 		#i = (n-1)/2
@@ -114,27 +110,18 @@ while2:
 		j while2
 	#end while loop	
 endwhile2:	
-#restore stack	
-	lw $ra, ($sp)
-	lw $s0, 4($sp) #i
-	lw $s1, 8($sp) #N
-	lw $s2, 12($sp) #array
-	addi $sp, $sp, 16
+
 jr $ra
 
 fixHeap:
-#save stack 
-	addi $sp, $sp, -12
-	sw $ra, ($sp)
-	sw $s0, 4($sp) #lastIndex
-	sw $s1, 8($sp) #rootIndex
-
+	
 #remove root; rootValue = array[rootindex]
-	move $t3, $s1
+	add $t3, $s0, $s7
 #int index = rootIndex
-	move $t4, $s1
+	move $t3, $s7
 # while more = true
-	while3:
+while3:
+	bc1f endwhile3 #more = false => endloop
 	#childindex = getLeftChildIn
 	jal getLeftChildIndex
 	#if childindex <= lastindex
@@ -159,13 +146,9 @@ fixHeap:
 	#endif
 	
 	j while3
-	endwhile3:
+endwhile3:
 	
 #array[index] = rootValue
 move $s0, $t3
-#restore stack
-	lw $ra, ($sp)
-	lw $s0, 4($sp) 
-	lw $s1, 8($sp)
-	addi $sp, $sp, 12
+
 jr $ra
