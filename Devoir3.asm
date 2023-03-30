@@ -41,27 +41,14 @@ init:
 	jr $ra
 
 swap:
-#save stack
-	addi $sp, $sp, -12
-	sw $ra, ($sp) #return address
-	sw $s0, 4($sp) #i
-	sw $s1, 8($sp) #j
-
-#boring move swap
-	#move $t0, $s0  # temp = a[i]
-	#move $s0, $s1 # a[i] = a[j]
-	#move $s1, $t0  #a[j] = temp
-
-#chad xor swap
-	xor $s0, $s0, $s1 # s0 = s0 xor s1
-	xor $s1, $s0, $s1 # s1 = s0 xor s1
-	xor $s0, $s0, $s1 # s0 = s0 xor s1
-
-#restore stack
-	lw $s0, 4($sp)
-	lw $s1, 8($sp)
-	lw $ra , ($sp)
-	addi $sp, $sp, 12
+#boring swap
+	add $t1, $s0, $s2 #t1 = array[i]
+	add $t2, $s0, $s3 #t2 = array[j]
+	lw $a0, 0($t1)	#a0 = t1
+	lw $a1, 0($t2) #a1 = t2
+	sw $a1, 0($t1) #a1 = t1
+	sw $a0, 0($t2) #a0 = t2
+	
 jr $ra
 
 getleftChildIndex:
@@ -113,11 +100,18 @@ endwhile:
 
 while2:
 	#while (n > 0)
+	beq t2, $0, endwhile2
 		#swap(0, n)
+		move s3, 0
+		move s2, t2
 		jal swap
 		#n--
+		sub t2, t2, 4 # t2 -= 4; or minus an elem; n--
 		#fixheap(0,n)
+		move s4, s3
+		move s5, s2
 		jal fixHeap
+		j while2
 	#end while loop	
 endwhile2:	
 #restore stack	
