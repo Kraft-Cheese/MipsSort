@@ -28,7 +28,7 @@ init:
 	move $s1, $v0 #set from v0 to s2; or s1 = v0/sizeofarray
 	#now we will recieve input from the user to fill an array; we must make sure not to overflow and base of of s1
 	sll $t2, $s1, 2 # t2 = s1*4 4 being size of an int
-	move $t0, 0 #t0 = i = 0
+	move $t0, $0 #t0 = i = 0
 	whileloop:
 		beq $t0, $t2, end whileloop # while i < sizeofUserInput, accept array elements
 		li $v0, 5 #Ready to read in elem
@@ -52,31 +52,15 @@ swap:
 jr $ra
 
 getleftChildIndex:
-#save stack
-	addi $sp, $sp, -8
-	sw $ra, ($sp)
-	sw $s0, 4($sp)
 # return i*2 + 1
-	sll $s6, $a0, 1  
-	addi $s6, $s6, 1
-#restore stack
-	lw $ra, ($sp)
-	lw $s0, 4($sp)
-	addi $sp, $sp, 8
+	sll $v0, $a0, 1 #v0 = a0 * 2 
+	addi $v0, $v0, 1 #v0 + 1
 jr $ra
 
 getRightChildIndex:
-#save stack
-	addi $sp, $sp, -8 
-	sw $ra, ($sp)
-	sw $s0, 4($sp)
 #return i*2 + 2
-	sll $s6, $a0, 1 
-	addi $s6, $s6, 2 
-#restore stack
-	lw $ra, ($sp)
-	lw $s0, 4($sp)
-	addi $sp, $sp, 8
+	sll $v0, $a0, 1 #v0 = a0 * 2 
+	addi $v0, $v0, 2 #v0 + 2
 jr $ra
 
 sort:
@@ -114,24 +98,33 @@ endwhile2:
 jr $ra
 
 fixHeap:
-	
-#remove root; rootValue = array[rootindex]
-	add $t3, $s0, $s7
-#int index = rootIndex
-	move $t3, $s7
+	addi $sp, $sp, -4 #save the stack so we can return to sort
+	sw $ra, ($sp) #return to sort
+	move $s4, $a0 #first param, i <= rootindex
+	sll $t2, $s4, 2 #t2 = i * 4; 4 as 4bits are needed per integer
+	add $t2, $t2, $s0 #t2 = array[i]
+	lw $s5, ($t2) #rootvalue = array[i/rootindex]
+	 
 # while more = true
 while3:
 	bc1f endwhile3 #more = false => endloop
-	#childindex = getLeftChildIn
+	move $a0, $s4 #set 1st parameter of getleftchild(int ) to a0
 	jal getLeftChildIndex
-	#if childindex <= lastindex
-	bgt $s3, $s0, endifchildleft
+	move $s6, $v0 #returned index  of getleftchild
+	bgt $s6, $a1, endifchildleft #if leftchildindex <= lastindex (a1 = 2nd parameter)
 		#rightchild = getRightChildIndex
 		jal getRightChildIndex
-		#if rightchild <= lastindex and array[rightchild] > array[childindex]
-		
-			#childindex = rightchild
-		#if array[childindex] > rootValue
+		move $s7, $v0 #returned index of rightchild
+		bgt $s7, $a1, endifchildright #if rightchild <= lastindex and 
+		sll $t3, $s7, 2 #t3 = rightchild*4
+		add $t3, $t3, $s0 #t3 = array[rightchild]
+		sll $t4, $s6, 2 #t3 = leftchild*4
+		add $t4, $t4, $s0 #t4 = array[leftchild]
+		lw $t4, ($t4) #sets to address
+		lw $t3, ($t3) #sets to address
+		#if array[rightchild] > array[leftchild]
+		bge $t4, $t2, endifrightchild
+		#if array[leftchild] > rootValue
 		ble $s1, $t3, endifchildright
 			#array[index] = array[childindex]
 			#index = childindex
@@ -148,7 +141,10 @@ while3:
 	j while3
 endwhile3:
 	
-#array[index] = rootValue
-move $s0, $t3
+#array[i/rootindex] = rootValue
+sw $s5, ($t0)
 
-jr $ra
+lw $ra, ($sp) #load back address of ra
+addi $sp, $sp, 4 #save the stack so we can return to sort
+	
+jr $ra #return to sort
