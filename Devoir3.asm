@@ -106,8 +106,9 @@ fixHeap:
 	lw $s5, ($t2) #rootvalue = array[i/rootindex]
 	 
 # while more = true
+move $t7, $0 #move = true
 while3:
-	bc1f endwhile3 #more = false => endloop
+	bnez $t7, endwhile3 #more = false => endloop
 	move $a0, $s4 #set 1st parameter of getleftchild(int ) to a0
 	jal getLeftChildIndex
 	move $s6, $v0 #returned index  of getleftchild
@@ -115,7 +116,7 @@ while3:
 		#rightchild = getRightChildIndex
 		jal getRightChildIndex
 		move $s7, $v0 #returned index of rightchild
-		bgt $s7, $a1, endifchildright #if rightchild <= lastindex and 
+		bgt $s7, $a1, elsechildright #if rightchild <= lastindex and 
 		sll $t3, $s7, 2 #t3 = rightchild*4
 		add $t3, $t3, $s0 #t3 = array[rightchild]
 		sll $t4, $s6, 2 #t3 = leftchild*4
@@ -123,26 +124,32 @@ while3:
 		lw $t4, ($t4) #sets to address
 		lw $t3, ($t3) #sets to address
 		#if array[rightchild] > array[leftchild]
-		bge $t4, $t2, endifrightchild
+		bge $t4, $t3, elsechildright
+		move $t4, $t3 #leftchild = rightchild
 		#if array[leftchild] > rootValue
-		ble $s1, $t3, endifchildright
-			#array[index] = array[childindex]
-			#index = childindex
+		ble $t4, $t2, elsechildright
+		move $t3, $0 #clear t3
+		sll $t3, $s6, 2 #t3 = leftchild * 4; integer
+		add $t3, $t3, $s0 #t3 = array[leftchild] 
+		lw $t3, ($t3) #load to address
+		sw $t3, ($t2) #array[i] = array[leftchild]
+		move $s4, $s6 #i = leftchild
+		j while3
 		#else
-		endifchildright:
-			#false
+		elsechildright:
+			addi $t7, $t7, 1 #move = false
+			j while3
 		#endif
 	#else 
-	endifchildleft:
-		#false
+	elsechildleft:
+		addi $t7, $t7, 1 #move = false
+		j while3
 	
 	#endif
 	
 	j while3
 endwhile3:
-	
-#array[i/rootindex] = rootValue
-sw $s5, ($t0)
+	sw $s5, ($t0) #array[i/rootindex] = rootValue
 
 lw $ra, ($sp) #load back address of ra
 addi $sp, $sp, 4 #save the stack so we can return to sort
