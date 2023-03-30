@@ -7,39 +7,38 @@
 
 
 main:
-	jal init
+	jal init	#Initialize the array with user input
+	jal sort
 
-whileloop: #while i < sizeofUserInput, accept array elements
-	beq $t0, $t2, end whileloop # while i < sizeof
-	add $t0, $t0, $s0 #t0 = array[i]; set temp to array at location i
-	li $v0, 5 #Ready to read in elem
-	syscall
-	move $t3, $v0 #t3 = v0
-	sw $t3, ($t0) #now array at location i (t0) is set to int in t3
-	addi $t0, $t0, 4 #t0 += 4; increment i
-	j whileloop
-end whileloop:
-	jr $ra #return to main
 
 
 exit:
-li $v0, 10
+li $v0, 10 #end the program
 syscall
 
 
 init:
-	lui $s0, 0x1004 #start at adress 0x1004
+	lui $s0, 0x1004 #start array at address 0x1004
 	#Get User Input for the array
 	la $a0, InputSize #a0 = inputsize (ie amount of elements)
 	li $v0, 4 #Ready to print a string
 	syscall
 	li $v0, 5 #Ready to recieve user input of an integer from buffer
 	syscall
-	move $s1, $v0 #set from v0 to s2; or s1 = v0
+	move $s1, $v0 #set from v0 to s2; or s1 = v0/sizeofarray
 	#now we will recieve input from the user to fill an array; we must make sure not to overflow and base of of s1
 	sll $t2, $s1, 2 # t2 = s1*4 4 being size of an int
 	move $t0, 0 #t0 = i = 0
-jr $ra
+	whileloop:
+		beq $t0, $t2, end whileloop # while i < sizeofUserInput, accept array elements
+		li $v0, 5 #Ready to read in elem
+		syscall
+		sw $v0, ($s0) # array[i] = element
+		addi $s0, $s0, 4 # move to next elem in array
+		addi $t0, $t0, 4 #t0 += 4; increment i
+		j whileloop
+	end whileloop:
+	jr $ra
 
 swap:
 #save stack
@@ -71,7 +70,7 @@ getleftChildIndex:
 	sw $ra, ($sp)
 	sw $s0, 4($sp)
 # return i*2 + 1
-	sll $s0, $a0, 1
+	sll $s0, $a0, 1  
 	addi $s0, $s0, 1
 #restore stack
 	lw $ra, ($sp)
@@ -81,12 +80,12 @@ jr $ra
 
 getRightChildIndex:
 #save stack
-	addi $sp, $sp, -8
+	addi $sp, $sp, -8 
 	sw $ra, ($sp)
 	sw $s0, 4($sp)
 #return i*2 + 2
-	sll $s0, $a0, 1
-	addi $s0, $s0, 2
+	sll $s0, $a0, 1 
+	addi $s0, $s0, 2 
 #restore stack
 	lw $ra, ($sp)
 	lw $s0, 4($sp)
@@ -100,7 +99,7 @@ sort:
 	sw $s0, 4($sp) #i
 	sw $s1, 8($sp) #N
 	sw $s2, 12($sp) #array
-
+	
 #set values
 	#int n = sizeof - 1
 while:
@@ -119,9 +118,9 @@ while2:
 		#n--
 		#fixheap(0,n)
 		jal fixHeap
-	#end while loop
-endwhile2:
-#restore stack
+	#end while loop	
+endwhile2:	
+#restore stack	
 	lw $ra, ($sp)
 	lw $s0, 4($sp) #i
 	lw $s1, 8($sp) #N
@@ -130,35 +129,49 @@ endwhile2:
 jr $ra
 
 fixHeap:
-#save stack
+#save stack 
 	addi $sp, $sp, -12
 	sw $ra, ($sp)
 	sw $s0, 4($sp) #lastIndex
 	sw $s1, 8($sp) #rootIndex
 
 #remove root; rootValue = array[rootindex]
+	move $t3, $s1
 #int index = rootIndex
+	move $t4, $s1
 # while more = true
-	#childindex = getLeftChildIndex
+	while3:
+	#childindex = getLeftChildIn
 	jal getLeftChildIndex
 	#if childindex <= lastindex
+	bgt $s3, $s0, endifchildleft
 		#rightchild = getRightChildIndex
 		jal getRightChildIndex
 		#if rightchild <= lastindex and array[rightchild] > array[childindex]
+		
 			#childindex = rightchild
-		#if array[childindex > rootValue
+		#if array[childindex] > rootValue
+		ble $s1, $t3, endifchildright
 			#array[index] = array[childindex]
 			#index = childindex
 		#else
+		endifchildright:
 			#false
 		#endif
-	#else
+	#else 
+	endifchildleft:
 		#false
+	
 	#endif
+	
+	j while3
+	endwhile3:
+	
 #array[index] = rootValue
+move $s0, $t3
 #restore stack
 	lw $ra, ($sp)
-	lw $s0, 4($sp)
+	lw $s0, 4($sp) 
 	lw $s1, 8($sp)
 	addi $sp, $sp, 12
 jr $ra
