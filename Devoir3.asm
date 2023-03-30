@@ -57,8 +57,8 @@ getleftChildIndex:
 	sw $ra, ($sp)
 	sw $s0, 4($sp)
 # return i*2 + 1
-	sll $s0, $a0, 1  
-	addi $s0, $s0, 1
+	sll $s6, $a0, 1  
+	addi $s6, $s6, 1
 #restore stack
 	lw $ra, ($sp)
 	lw $s0, 4($sp)
@@ -71,8 +71,8 @@ getRightChildIndex:
 	sw $ra, ($sp)
 	sw $s0, 4($sp)
 #return i*2 + 2
-	sll $s0, $a0, 1 
-	addi $s0, $s0, 2 
+	sll $s6, $a0, 1 
+	addi $s6, $s6, 2 
 #restore stack
 	lw $ra, ($sp)
 	lw $s0, 4($sp)
@@ -108,8 +108,8 @@ while2:
 		#n--
 		sub t2, t2, 4 # t2 -= 4; or minus an elem; n--
 		#fixheap(0,n)
-		move s4, s3
-		move s5, s2
+		move s4, s3 #s4 = s3
+		move s5, s2 #s5 = s2
 		jal fixHeap
 		j while2
 	#end while loop	
