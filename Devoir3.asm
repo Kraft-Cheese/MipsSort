@@ -15,9 +15,9 @@ main:
 	jal init #Initialize the array with user input
 	move $s1, $v0 #save index
 	move $s2, $v1 #save sizeof
-	#move $a0, $s1 # arg1 sort index
-	#move $a1, $s2 #arg2 sort sizeof
-	#jal sort
+	move $a0, $s1 # arg1 sort index
+	move $a1, $s2 #arg2 sort sizeof
+	jal sort
 	
 	la $a0, PrintElements
 	li $v0, 4 #Ready to print a string
@@ -75,11 +75,10 @@ init:
 
 
 sort:
-	addi $sp, $sp, -4 #save the stack so we can return to sort
-	sw $s0, ($sp) #save base address
+
 	#set values
 	#int n = sizeof - 1
-	move $t0, $a0 #t0 -= array
+	move $t0, $a0 #t0 = lastindex
 	move $t1, $a1 #t1 = n = sizeof
 	subi $t1, $t1, 1 #t1 = n = n-1
 	subi $t3, $t1, 1 #t3 = n - 1
@@ -97,29 +96,26 @@ while:
 endwhile:
 
 while2:
-	beq $t2, $0, endwhile2 #while (n > 0)
+	beq $t1, $0, endwhile2 #while (n > 0)
 		move $a0, $0
-		move $a1, $t2 # n
+		move $a1, $t1 # n
 		
 		jal swap # swap(0, n)
 		
-		move $t2, $v0
-		sub $t2, $t2, 1 # $t2 -= 1; or minus an elem; n--
+		move $t1, $v0
+		sub $t1, $t1, 1 # $t2 -= 1; or minus an elem; n--
 
 		move $a0, $s3 # $a0 = s3
 		move $a1, $s2 # $a1 = s2
 		
 		jal fixHeap # fixheap(0,n)
 		
-		move $s3, $v0 # $s3 = $v0
-		move $s4, $v1 # $s4 = $v1
+		move $t8, $v0 # $s3 = $v0
+		move $t9, $v1 # $s4 = $v1
 		
 		j while2 #loop back to while2
 	#end while loop	
 endwhile2: #exit to return to main	
-
-	lw $s0, ($sp) #save base address
-	addi $sp, $sp, 4 #save the stack so we can return to sort
 
 	jr $ra
 
@@ -137,8 +133,8 @@ fixHeap:
 	lw $s5, ($t2) #rootvalue = array[rootindex]
 	move $s1, $t0 #index = rootindex
 	 
-# while more = true
-move $t7, $0 #more = true
+	# while more = true
+	move $t7, $0 #more = true
 while3:
 	bnez $t7, endwhile3 #more = false => endloop
 	move $a0, $t0 #set 1st parameter of getleftchild(index) to a0
@@ -181,7 +177,7 @@ while3:
 	
 	j while3
 endwhile3:
-	sw $t3, ($t0) #array[i/rootindex] = rootValue
+	sw $t3, ($t0) #array[i/rootindex] = rootValue ####ERROR#### Address Unaligned on Boundary
 	move $v0, $t3 #return array[i]
 	
 	lw $s1, 8($sp)
@@ -194,7 +190,7 @@ endwhile3:
 swap:
 	addi $sp, $sp, -4 #save the stack so we can return to sort
 	sw $ra, ($sp) #return to sort
-#boring swap
+	#boring swap
 	add $t1, $s0, $s2 #t1 = array[i]
 	add $t2, $s0, $s3 #t2 = array[j]
 	
@@ -207,7 +203,8 @@ swap:
 	
 	lw $ra, ($sp) #load back address of ra
 	addi $sp, $sp, 4 #save the stack so we can return to sort
-jr $ra
+	
+	jr $ra
 
 getleftChildIndex: # return i*2 + 1
 	addi $sp, $sp, -4 #save the stack so we can return to sort
@@ -218,7 +215,8 @@ getleftChildIndex: # return i*2 + 1
 	
 	lw $ra, ($sp) #load back address of ra
 	addi $sp, $sp, 4 #save the stack so we can return to sort
-jr $ra
+	
+	jr $ra
 
 getRightChildIndex: #return i*2 + 2
 	addi $sp, $sp, -4 #save the stack so we can return to sort
@@ -229,4 +227,5 @@ getRightChildIndex: #return i*2 + 2
 	
 	lw $ra, ($sp) #load back address of ra
 	addi $sp, $sp, 4 #save the stack so we can return to sort
-jr $ra
+	
+	jr $ra
