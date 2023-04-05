@@ -118,8 +118,8 @@ fixHeap:
 	
 	
 	move $s4, $a0 #s4 = i <= rootindex;
-	move $s1, $a1 #s1 = n <= lastindex (already *4)
-	sll $t0, $s4, 2 #t0 = rootindex = i * 4; 4 as 4bits are needed per integer
+	move $s1, $a1 #s1 = n <= lastindex
+	sll $t0, $s4, 2 #t0 = rootindex = i * 4;
 	add $t0, $t0, $s0 #$t0 = array[rootindex] = array[i*4]
 	lw $s5, ($t0) #$t2 = rootvalue = array[rootindex]
 	 
@@ -127,33 +127,40 @@ fixHeap:
 	move $t7, $0 #more = true
 	while3:
 		bnez $t7, endwhile3 #more = false => endloop
-		move $a0, $s4 #set 1st parameter of getleftchild(index) to a0
+		move $a0, $s4 #getleftchild(index); s4 = index
 		jal getleftChildIndex
-		move $s3, $v0 #$t6 = leftchildindex = getleftchildindex(index) == 2*(i*4)+1
+		move $s3, $v0 #$s3 = leftchildindex = getleftchildindex(index)
+		
 		bgt $s3, $s1, elsechildleft #if leftchildindex <= lastindex == 2*(i*4)+1 <= n*4
+			
 			move $a0, $s4 #getRightChildIndex(index)
 			jal getRightChildIndex
 			move $s6, $v0 #rightchildindex = getRightChildIndex(index) == 2*(i*4)+2
-			#if part 1: rightchildindex <= lastindex
+			#if2 part 1: rightchildindex <= lastindex
+			
 			bgt $s6, $s1, elsechildright #if rightchildindex <= lastindex == 2*(i*4)+2 <= n*4
 		
 			#&&
-		
-			add $t3, $s3, $s0 #t3 = array[leftchildindex] == array[2*(i*4)+2]
-			add $t4, $s6, $s0 #t4 = array[rightchildindex] == array[2*(i*4)+1]
+			sll $t3, $s3, 2
+			sll $t4, $s6, 2
+			add $t3, $t3, $s0 #t3 = array[leftchildindex] == array[2*(i*4)+2]
+			add $t4, $t4, $s0 #t4 = array[rightchildindex] == array[2*(i*4)+1]
 			lw $t3, ($t3) #sets to address left
 			lw $t4, ($t4) #sets to address right
 			move $t9, $0 #clear $t9
 	
-			#if part 2 array[rightchild] > array[leftchild]
+			#if2 part 2 array[rightchild] > array[leftchild] ##COULD BE ERROR##
 			bge $t4, $t3, ifroot #if array[rightchild] > array[leftchild] == array[2*(i*4)+2] > array[2*(i*4)+1]
 			move $s3, $s6 #leftchild = rightchild
 		
 			ifroot:
-			ble $t3, $s5, elsechildright #if array[leftchildindex] > rootValue
-		
-				add $t9, $t3, $s0 #t9 = array[leftchildindex] 
+			
+				sll $t9, $s3, 2 #leftindex*4
+				add $t9, $t9, $s0 #t9 = array[leftchildindex] 
 				lw $t9, ($t9) #load to address
+				
+				ble $t3, $s5, elsechildright #if array[leftchildindex] > rootValue
+				
 				sw $t9, ($s4) #array[index] = array[leftchildindex]
 				move $s4, $s3 #index = leftchildindex
 				j while3
@@ -172,8 +179,10 @@ fixHeap:
 		j while3
 		
 		endwhile3:
-		
-		sw $s5, ($s4) #array[i/rootindex] = rootValue ####ERROR#### Address Unaligned on Boundary
+		move $t9, $0 #fix attempt
+		sll $t9, $s4, 2 #rootindex*4
+		add $t9, $t9, $s0 # array[rootindex]
+		sw $s5, ($t9) #array[i/rootindex] = rootValue ####ERROR#### Address Unaligned on Boundary
 	
 		lw $s3, 4($sp)
 		lw $ra, ($sp) #load back address of ra
@@ -184,24 +193,18 @@ fixHeap:
 swap:
 	addi $sp, $sp, -16 #save the stack so we can return to sort
 	sw $ra, ($sp) #return to sort
-	sw $t0, 4($sp)
-	sw $t1, 8($sp)
-	sw $t3, 12($sp)
 	
 		#boring swap
 		sll $t0, $a0, 2 #i*4
 		sll $t1, $a1, 2 #j*4
-		add $t1, $t1, $s0 #t1 = array[i]
-		add $t3, $t3, $s0 #t2 = array[j]
+		add $t1, $t1, $s0 #t1 = array[j]
+		add $t0, $t0, $s0 #t2 = array[i]
 	
 		lw $a0, ($t1)	#a0 = array[i]
-		lw $a1, ($t3) #a1 = array[j]
+		lw $a1, ($t0) #a1 = array[j]
 		sw $a1, ($t1) #a1 = t1
-		sw $a0, ($t3) #a0 = t2
+		sw $a0, ($t0) #a0 = t2
 	
-	lw $t3 12($sp)
-	lw $t1 8($sp)
-	lw $t0 4($sp)
 	lw $ra, ($sp) #load back address of ra
 	addi $sp, $sp, 16 #save the stack so we can return to sort
 	
@@ -210,16 +213,10 @@ swap:
 getleftChildIndex: # return i*2 + 1
 	addi $sp, $sp, -16 #save the stack so we can return to sort
 	sw $ra, ($sp) #return to sort
-	sw $t3, 4($sp)
-	sw $t1, 8($sp)
-	sw $t0, 12($sp)
 	
 		sll $v0, $a0, 1 #v0 = a0 * 2 
 		addi $v0, $v0, 1 #v0 + 1
 	
-	lw $t0, 12($sp)
-	lw $t1, 8($sp)
-	lw $t3, 4($sp)
 	lw $ra, ($sp) #load back address of ra
 	addi $sp, $sp, 16 #save the stack so we can return to sort
 	
@@ -228,16 +225,10 @@ getleftChildIndex: # return i*2 + 1
 getRightChildIndex: #return i*2 + 2
 	addi $sp, $sp, -16 #save the stack so we can return to sort
 	sw $ra, ($sp) #return to sort
-	sw $t3, 4($sp)
-	sw $t1, 8($sp)
-	sw $t0, 12($sp)
 	
 		sll $v0, $a0, 1 #v0 = a0 * 2 
 		addi $v0, $v0, 2 #v0 + 2
 	
-	lw $t0, 12($sp)
-	lw $t1, 8($sp)
-	lw $t3, 4($sp)
 	lw $ra, ($sp) #load back address of ra
 	addi $sp, $sp, 16 #save the stack so we can return to sort
 	
