@@ -78,7 +78,8 @@ init:	#Fully Functional
 	jr $ra
 
 heapsort:
-
+	addi $sp, $sp, -4 #save the stack so we can return to sort
+	sw $ra, ($sp) #return to sort
 	#int n = sizeof - 1
 	addi $s2, $s2, -1 #s2 = n = sizeof-1
 	addi $t3, $s2, -1 #t3 = n - 1
@@ -91,6 +92,7 @@ heapsort:
 		move $a1, $s2 # n
 		jal fixHeap #void function ;fixheap(i, n)
 		addi $s3, $s3, -1 #i--
+		j while
 		#end while loop
 	endwhile:
 	#s2 = n
@@ -101,14 +103,15 @@ heapsort:
 			jal swap # swap(0, n); void function
 			addi $s2, $s2, -1 # $t2 -= 1; or minus an elem; n--
 			move $a0, $0# $a0 = 0
-			move $a1, $s2 # $a1 = s3 = n
+			move $a1, $s2 # $a1 = s2 = n
 			jal fixHeap # fixheap(0,n); void function
 			j while2 #loop back to while2
 	#end while loop	
 	endwhile2: #exit to return to main	
-
-		jr $ra
-
+	
+		lw $ra, ($sp) #load back address of ra
+		addi $sp, $sp, 8 #save the stack so we can return to sort
+		jr $ra #return to main
 fixHeap:
 #s0=base, #s1 = lastindex, #s2 = n, #s3 = i, #s4 = index, #s5 = rootvalue
 #s3 = leftchildindex, #s6 = rightchildindex
@@ -150,7 +153,7 @@ fixHeap:
 			move $t9, $0 #clear $t9
 	
 			#if2 part 2 array[rightchild] > array[leftchild] ##COULD BE ERROR##
-			bge $t4, $t3, ifroot #if array[rightchild] > array[leftchild] == array[2*(i*4)+2] > array[2*(i*4)+1]
+			bge $t3, $t4, ifroot #if array[rightchild] > array[leftchild] == array[2*(i*4)+2] > array[2*(i*4)+1]
 			move $s3, $s6 #leftchild = rightchild
 		
 			ifroot:
@@ -180,7 +183,7 @@ fixHeap:
 		
 		endwhile3:
 		move $t9, $0 #fix attempt
-		sll $t9, $s4, 2 #rootindex*4
+		sll $t9, $s4, 2 #rootindex*4 ===arr[4] might need an addi -1
 		add $t9, $t9, $s0 # array[rootindex]
 		sw $s5, ($t9) #array[i/rootindex] = rootValue ####ERROR#### Address Unaligned on Boundary
 	
@@ -198,12 +201,13 @@ swap:
 		sll $t0, $a0, 2 #i*4
 		sll $t1, $a1, 2 #j*4
 		add $t1, $t1, $s0 #t1 = array[j]
-		add $t0, $t0, $s0 #t2 = array[i]
+		add $t0, $t0, $s0 #t0 = array[i]
 	
-		lw $a0, ($t1)	#a0 = array[i]
-		lw $a1, ($t0) #a1 = array[j]
-		sw $a1, ($t1) #a1 = t1
-		sw $a0, ($t0) #a0 = t2
+		lw $t3, ($t1)	#t3 = array[i]
+		lw $t2, ($t0) #t2 = array[j]
+		sw $t3, ($t0) #t3 = t0
+		sw $t2, ($t1) #t2 = t1
+		
 	
 	lw $ra, ($sp) #load back address of ra
 	addi $sp, $sp, 16 #save the stack so we can return to sort
