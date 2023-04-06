@@ -1,7 +1,5 @@
 
 .data
-	smallestElem: .asciiz "Smallest in root: \n"
-	childElem: .asciiz "Child of the node is: \n"
 	InputSize: .asciiz "What is the number of elements in the array: "
 	InputElements: .asciiz "Input your elements \n"
 	PrintElements: .asciiz "Here are the elements in the array: \n "
