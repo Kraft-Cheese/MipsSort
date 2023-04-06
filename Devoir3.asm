@@ -87,10 +87,10 @@ heapsort:
 	srl $s3, $s3, 1 #i = s3= t3/2 = (n-1)/2
 	#s2 = n; s3 = i
 	while:
-		beq $s3, $0, endwhile #while i > 0 ; i = (n-1)/2
 		move $a0, $s3 # i
 		move $a1, $s2 # n
 		jal fixHeap #void function ;fixheap(i, n)
+		beq $s3, $0, endwhile #while i > 0 ; i = (n-1)/2
 		addi $s3, $s3, -1 #i--
 		j while
 		#end while loop
