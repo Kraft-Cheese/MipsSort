@@ -18,6 +18,7 @@ main:
 	
 	move $s1, $v0 #save index
 	move $s2, $v1 #save sizeof
+	move $s7, $s2 #save original size
 	
 	move $a0, $s1 # arg1 sort index
 	move $a1, $s2 #arg2 sort sizeof
@@ -28,19 +29,19 @@ main:
 	syscall
 	
 	#print array Fully Functional
-	move $t0, $0
-	printloop: #print out contents of array
-		beq $t0, $s2, endloop # while (i < sizeof)
+	move $t0, $0 #int i = 0
+	printarray: #print out contents of array
+		beq $t0, $s7, endloop # while (i < sizeof)
 		sll $t2, $t0, 2 #index = i*4
 		add $t2, $t2, $s0 #array[index]
 		lw $a0, ($t2) #a0 = array[index]
 		li $v0, 1 #print number
 		syscall
 		li $v0, 4 #print string
-		la $a0, newline #\n
+		la $a0, space #\n
 		syscall
 		addi $t0, $t0, 1 #i++
-		j printloop
+		j printarray
 	endloop:
 	
 
@@ -80,14 +81,13 @@ init:	#Fully Functional
 heapsort:
 	addi $sp, $sp, -4 #save the stack so we can return to sort
 	sw $ra, ($sp) #return to sort
-	#int n = sizeof - 1
+	
 	addi $s2, $s2, -1 #s2 = n = sizeof-1
-	addi $t3, $s2, -1 #t3 = n - 1
-	srl $s3, $t3, 1 #i = s4= t3/2 = (n-1)/2
-	#s2 = n
-	#s3 = i
+	addi $s3, $s2, -1 #s3 = n - 1
+	srl $s3, $s3, 1 #i = s3= t3/2 = (n-1)/2
+	#s2 = n; s3 = i
 	while:
-		beq $s3, $0, endwhile #while i >= 0 ; i = (n-1)/2
+		beq $s3, $0, endwhile #while i > 0 ; i = (n-1)/2
 		move $a0, $s3 # i
 		move $a1, $s2 # n
 		jal fixHeap #void function ;fixheap(i, n)
@@ -95,16 +95,17 @@ heapsort:
 		j while
 		#end while loop
 	endwhile:
-	#s2 = n
+	#s2 = n; s3 = 0
+	#move $s2, $s7
 	while2:
 		beq $s2, $0, endwhile2 #while (n > 0)
-			move $a0, $0
-			move $a1, $s2 # n
-			jal swap # swap(0, n); void function
-			addi $s2, $s2, -1 # $t2 -= 1; or minus an elem; n--
+			move $a0, $0 # a0 = 0
+			move $a1, $s2 # a1 = s2 = n
+			jal swap # swap(0, n) return void
+			addi $s2, $s2, -1 # s2--; n--
 			move $a0, $0# $a0 = 0
 			move $a1, $s2 # $a1 = s2 = n
-			jal fixHeap # fixheap(0,n); void function
+			jal fixHeap # fixheap(0,n) returns void 
 			j while2 #loop back to while2
 	#end while loop	
 	endwhile2: #exit to return to main	
@@ -114,58 +115,60 @@ heapsort:
 		jr $ra #return to main
 fixHeap:
 #s0=base, #s1 = lastindex, #s2 = n, #s3 = i, #s4 = index, #s5 = rootvalue
-#s3 = leftchildindex, #s6 = rightchildindex
+#s3 = leftchildindex, #s6 = rightchildindex #s7 = original size
 	addi $sp, $sp, -8 #save the stack so we can return to sort
 	sw $ra, ($sp) #return to sort
-	sw $s3, 4($sp)
+	sw $s3, 4($sp) #save s3 value 
 	
 	
 	move $s4, $a0 #s4 = i <= rootindex;
 	move $s1, $a1 #s1 = n <= lastindex
 	sll $t0, $s4, 2 #t0 = rootindex = i * 4;
 	add $t0, $t0, $s0 #$t0 = array[rootindex] = array[i*4]
+	
 	lw $s5, ($t0) #$t2 = rootvalue = array[rootindex]
 	 
-	# while more = true
+	
 	move $t7, $0 #more = true
-	while3:
+	while3: # while more = true
 		bnez $t7, endwhile3 #more = false => endloop
-		move $a0, $s4 #getleftchild(index); s4 = index
+		move $a0, $s4 #getleftchild(rootindex); s4 = rootindex
 		jal getleftChildIndex
-		move $s3, $v0 #$s3 = leftchildindex = getleftchildindex(index)
+		move $s3, $v0 # s3 = leftchildindex = getleftchildindex(rootindex)
 		
-		bgt $s3, $s1, elsechildleft #if leftchildindex <= lastindex == 2*(i*4)+1 <= n*4
+		bgt $s3, $s1, elsechildleft #if (leftchildindex <= lastindex) == 2*i+1 <= n
 			
-			move $a0, $s4 #getRightChildIndex(index)
+			move $a0, $s4 #getRightChildIndex(rootindex)
 			jal getRightChildIndex
-			move $s6, $v0 #rightchildindex = getRightChildIndex(index) == 2*(i*4)+2
+			move $s6, $v0 #rightchildindex = getRightChildIndex(rootindex) == 2*i+2
 			#if2 part 1: rightchildindex <= lastindex
-			
-			bgt $s6, $s1, elsechildright #if rightchildindex <= lastindex == 2*(i*4)+2 <= n*4
+			bgt $s6, $s1, ifroot #if rightchildindex <= lastindex == 2*i+2 <= n
 		
 			#&&
-			sll $t3, $s3, 2
-			sll $t4, $s6, 2
-			add $t3, $t3, $s0 #t3 = array[leftchildindex] == array[2*(i*4)+2]
-			add $t4, $t4, $s0 #t4 = array[rightchildindex] == array[2*(i*4)+1]
-			lw $t3, ($t3) #sets to address left
-			lw $t4, ($t4) #sets to address right
-			move $t9, $0 #clear $t9
+			#we must now compare the data within
+				sll $t3, $s3, 2 # t3 = leftchildindex*4
+				sll $t4, $s6, 2 # t4 = rightchildindex*4
+				add $t3, $t3, $s0 #t3 = array[leftchildindex] == array[2*(i*4)+2]
+				add $t4, $t4, $s0 #t4 = array[rightchildindex] == array[2*(i*4)+1]
+				lw $t3, ($t3) #load to address left
+				lw $t4, ($t4) #load to address right
+				move $t9, $0 #clear $t9 to be safe
 	
-			#if2 part 2 array[rightchild] > array[leftchild] ##COULD BE ERROR##
+			#if2 part 2 array[rightchild] > array[leftchild]
 			bge $t3, $t4, ifroot #if array[rightchild] > array[leftchild] == array[2*(i*4)+2] > array[2*(i*4)+1]
 			move $s3, $s6 #leftchild = rightchild
 		
 			ifroot:
-			
-				sll $t9, $s3, 2 #leftindex*4
-				add $t9, $t9, $s0 #t9 = array[leftchildindex] 
-				lw $t9, ($t9) #load to address
+				sll $t3, $s3, 2 # t3 = leftchildindex*4
+				add $t3, $t3, $s0 #t3 = array[leftchildindex] == array[2*(i*4)+2]
+				lw $t0, ($t3) #load to address left
 				
-				ble $t3, $s5, elsechildright #if array[leftchildindex] > rootValue
+				ble $t0, $s5, elsechildright #if array[leftchildindex] > rootValue
+				sll $t2, $s4, 2 # t2 = index*4
+				add $t2, $t2, $s0 #t2 = array[index]
 				
-				sw $t9, ($s4) #array[index] = array[leftchildindex]
-				move $s4, $s3 #index = leftchildindex
+				sw $t0, ($t2) #array[index] = array[leftchildindex]
+				move $s4, $s3 #index = leftchildindex ; s4 now holds updated value
 				j while3
 			#else
 			elsechildright:
@@ -183,9 +186,9 @@ fixHeap:
 		
 		endwhile3:
 		move $t9, $0 #fix attempt
-		sll $t9, $s4, 2 #rootindex*4 ===arr[4] might need an addi -1
+		sll $t9, $s4, 2 #rootindex*4
 		add $t9, $t9, $s0 # array[rootindex]
-		sw $s5, ($t9) #array[i/rootindex] = rootValue ####ERROR#### Address Unaligned on Boundary
+		sw $s5, ($t9) #array[i/rootindex] = rootValue
 	
 		lw $s3, 4($sp)
 		lw $ra, ($sp) #load back address of ra
